@@ -12,7 +12,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+    }
+
     #coordsBox {
       position: absolute;
       top: 10px;
@@ -31,9 +36,15 @@
 </head>
 
 <body>
+
   <div id="coordsBox">Esperando detección de mano…</div>
 
   <a-scene background="color: #111">
+
+    <!-- ASSETS -->
+    <a-assets>
+      <a-asset-item id="piramide" src="./piramide.glb"></a-asset-item>
+    </a-assets>
 
     <!-- LUCES -->
     <a-entity light="type: ambient; intensity: 1.5"></a-entity>
@@ -42,7 +53,7 @@
     <!-- MODELO PIRÁMIDE -->
     <a-entity
       id="model3d"
-      gltf-model="url(piramide.glb)"
+      gltf-model="#piramide"
       position="0 0.5 -2"
       rotation="0 180 0"
       scale="0.03 0.03 0.03">
@@ -54,8 +65,15 @@
   </a-scene>
 
   <script>
-    const model = document.getElementById("model3d");
     const coordsBox = document.getElementById("coordsBox");
+    const model = document.getElementById("model3d");
+
+    // =====================
+    // Esperar carga del modelo
+    // =====================
+    model.addEventListener("model-loaded", () => {
+      console.log("Modelo GLB cargado correctamente");
+    });
 
     // =====================
     // MediaPipe Hands
@@ -73,14 +91,14 @@
     });
 
     hands.onResults(results => {
+      if (!model.hasLoaded) return;
+
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         coordsBox.textContent = "No se detecta mano…";
         return;
       }
 
       const indexTip = results.multiHandLandmarks[0][8];
-
-      // Convertir X (0–1) en grados (-90 a +90)
       const rotY = (indexTip.x - 0.5) * 180;
 
       model.setAttribute("rotation", `0 ${rotY} 0`);
@@ -104,5 +122,7 @@
 
     camera.start();
   </script>
+
 </body>
 </html>
+
