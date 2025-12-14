@@ -1,129 +1,64 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>A-Frame + MediaPipe + Pirámide GLB</title>
+<script>
+  const coordsBox = document.getElementById("coordsBox");
+  const model = document.getElementById("model3d");
 
-  <!-- A-FRAME -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  let modelReady = false;
 
-  <!-- MEDIAPIPE -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  // =====================
+  // Confirmar carga del modelo
+  // =====================
+  model.addEventListener("model-loaded", () => {
+    modelReady = true;
+    console.log("✅ Modelo GLB cargado correctamente");
+    coordsBox.textContent = "Modelo cargado. Mueve tu mano ✋";
+  });
 
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #111;
+  // =====================
+  // MediaPipe Hands
+  // =====================
+  const hands = new Hands({
+    locateFile: file =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.7
+  });
+
+  hands.onResults(results => {
+    if (!modelReady) return;
+
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+      coordsBox.textContent = "No se detecta mano…";
+      return;
     }
 
-    #coordsBox {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      width: 320px;
-      height: 140px;
-      background: rgba(0,0,0,0.75);
-      color: #00ff00;
-      padding: 10px;
-      font-family: monospace;
-      font-size: 13px;
-      border-radius: 8px;
-      z-index: 10;
-    }
-  </style>
-</head>
+    const indexTip = results.multiHandLandmarks[0][8];
 
-<body>
+    // Convertir X (0–1) a grados
+    const rotY = (indexTip.x - 0.5) * 180;
 
-  <div id="coordsBox">Esperando detección de mano…</div>
+    model.setAttribute("rotation", `0 ${rotY} 0`);
+    coordsBox.textContent = `Rotación eje Y: ${rotY.toFixed(1)}°`;
+  });
 
-  <a-scene background="color: #111">
+  // =====================
+  // Cámara oculta
+  // =====================
+  const video = document.createElement("video");
+  video.style.display = "none";
+  document.body.appendChild(video);
 
-    <!-- ASSETS -->
-    <a-assets>
-      <a-asset-item id="piramide" src="./piramide.glb"></a-asset-item>
-    </a-assets>
+  const camera = new Camera(video, {
+    onFrame: async () => {
+      await hands.send({ image: video });
+    },
+    width: 640,
+    height: 480
+  });
 
-    <!-- LUCES -->
-    <a-entity light="type: ambient; intensity: 1.5"></a-entity>
-    <a-entity light="type: directional; intensity: 1" position="1 2 1"></a-entity>
-
-    <!-- MODELO PIRÁMIDE -->
-    <a-entity
-      id="model3d"
-      gltf-model="#piramide"
-      position="0 0.5 -2"
-      rotation="0 180 0"
-      scale="0.03 0.03 0.03">
-    </a-entity>
-<a-box position="0 1 -3" color="red"></a-box>
-    <!-- CÁMARA -->
-    <a-camera position="0 1.6 0"></a-camera>
-
-  </a-scene>
-
-  <script>
-    const coordsBox = document.getElementById("coordsBox");
-    const model = document.getElementById("model3d");
-
-    // =====================
-    // Esperar carga del modelo
-    // =====================
-    model.addEventListener("model-loaded", () => {
-      console.log("Modelo GLB cargado correctamente");
-    });
-
-    // =====================
-    // MediaPipe Hands
-    // =====================
-    const hands = new Hands({
-      locateFile: file =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
-    });
-
-    hands.onResults(results => {
-      if (!model.hasLoaded) return;
-
-      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        coordsBox.textContent = "No se detecta mano…";
-        return;
-      }
-
-      const indexTip = results.multiHandLandmarks[0][8];
-      const rotY = (indexTip.x - 0.5) * 180;
-
-      model.setAttribute("rotation", `0 ${rotY} 0`);
-      coordsBox.textContent = `Rotación eje Y: ${rotY.toFixed(1)}°`;
-    });
-
-    // =====================
-    // Cámara oculta
-    // =====================
-    const video = document.createElement("video");
-    video.style.display = "none";
-    document.body.appendChild(video);
-
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({ image: video });
-      },
-      width: 640,
-      height: 480
-    });
-
-    camera.start();
-  </script>
-
-</body>
-</html>
-
-
+  camera.start();
+</script>
