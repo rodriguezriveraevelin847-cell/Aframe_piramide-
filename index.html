@@ -33,25 +33,18 @@
   <body>
     <div id="coordsBox">Esperando detección de mano...</div>
 
-  <a-scene background="color: #111">
+ <a-scene background="color: #222">
 
-  <!-- LUCES POTENTES -->
   <a-entity light="type: ambient; intensity: 2"></a-entity>
-  <a-entity light="type: directional; intensity: 2" position="1 3 2"></a-entity>
+  <a-entity light="type: directional; intensity: 3" position="2 4 2"></a-entity>
 
-  <!-- MODELO PIRÁMIDE -->
-  <a-entity
-    id="model3d"
-    gltf-model="url(piramide.glb)"
-    position="0 0 -3"
-    rotation="0 180 0"
-    scale="0.01 0.01 0.01">
-  </a-entity>
+  <!-- CAJA DE PRUEBA -->
+  <a-box position="0 1 -3" color="red"></a-box>
 
-  <!-- CÁMARA -->
-  <a-camera position="0 1.6 0" look-controls="enabled: false"></a-camera>
+  <a-camera position="0 1.6 0"></a-camera>
 
 </a-scene>
+
 
 
     <script>
@@ -99,4 +92,5 @@
     </script>
   </body>
 </html>
+
 
