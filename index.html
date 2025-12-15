@@ -1,109 +1,93 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Pirámide con MediaPipe</title>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>A-Frame + MediaPipe + GLB</title>
 
-  <!-- A-FRAME -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <!-- A-FRAME CORRECTO -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
-  <!-- MEDIAPIPE -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <!-- MEDIAPIPE -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
-  <style>
-    body { margin: 0; background: #111; }
-    #info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: #00ff00;
-      font-family: monospace;
-      background: rgba(0,0,0,0.6);
-      padding: 8px;
-      border-radius: 6px;
-      z-index: 10;
-    }
-  </style>
-</head>
+    <style>
+      #coordsBox {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 350px;
+        height: 450px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #00ff00;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 12px;
+        overflow-y: scroll;
+        border-radius: 8px;
+        z-index: 10;
+      }
+    </style>
+  </head>
 
-<body>
+  <body>
+    <div id="coordsBox">Esperando detección de mano...</div>
 
-<div id="info">Esperando mano…</div>
+    <a-scene>
+     <a-entity
+  id="model3d"
+  gltf-model="url(piramide.glb)"
+  position="0 0.5 -2"
+  rotation="0 0 0"
+  scale="0.05 0.05 0.05">
+</a-entity>
 
-<a-scene background="color: #111">
 
-  <!-- MODELO -->
-  <a-assets>
-    <a-asset-item id="piramide" src="piramide.glb"></a-asset-item>
-  </a-assets>
+      <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
 
-  <!-- LUCES -->
-  <a-entity light="type: ambient; intensity: 1.6"></a-entity>
-  <a-entity light="type: directional; intensity: 1"
-            position="1 2 1"></a-entity>
+    <script>
+      const model = document.getElementById("model3d");
+      const coordsBox = document.getElementById("coordsBox");
 
-  <!-- PIRÁMIDE -->
-  <a-entity
-    id="model3d"
-    gltf-model="#piramide"
-    position="0 0.5 -2"
-    scale="1 1 1">
-  </a-entity>
+      const hands = new Hands({
+        locateFile: file =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
 
-  <a-camera position="0 1.6 0"></a-camera>
-</a-scene>
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+      });
 
-<script>
-const model = document.getElementById("model3d");
-const info = document.getElementById("info");
+      hands.onResults(res => {
+        if (!res.multiHandLandmarks?.length) {
+          coordsBox.textContent = "No se detecta mano...";
+          return;
+        }
 
-const hands = new Hands({
-  locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-});
+        const indexTip = res.multiHandLandmarks[0][8];
+        const rotY = (indexTip.x - 0.5) * 180;
 
-hands.setOptions({
-  maxNumHands: 1,
-  modelComplexity: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7
-});
+        model.setAttribute("rotation", `0 ${rotY} 0`);
+        coordsBox.textContent = `Rotación Y: ${rotY.toFixed(2)}°`;
+      });
 
-hands.onResults(results => {
-  if (!results.multiHandLandmarks) {
-    info.textContent = "No se detecta mano";
-    return;
-  }
+      const video = document.createElement("video");
+      video.style.display = "none";
+      document.body.appendChild(video);
 
-  const index = results.multiHandLandmarks[0][8];
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await hands.send({ image: video });
+        },
+        width: 640,
+        height: 480
+      });
 
-  const rotY = (index.x - 0.5) * 180;
-  const rotX = (index.y - 0.5) * -180;
-
-  model.setAttribute(
-    "rotation",
-    `${rotX.toFixed(1)} ${rotY.toFixed(1)} 0`
-  );
-
-  info.textContent =
-    `Rot X: ${rotX.toFixed(1)} | Rot Y: ${rotY.toFixed(1)}`;
-});
-
-const video = document.createElement("video");
-video.style.display = "none";
-document.body.appendChild(video);
-
-const camera = new Camera(video, {
-  onFrame: async () => {
-    await hands.send({ image: video });
-  },
-  width: 640,
-  height: 480
-});
-
-camera.start();
-</script>
-
-</body>
+      camera.start();
+    </script>
+  </body>
 </html>
